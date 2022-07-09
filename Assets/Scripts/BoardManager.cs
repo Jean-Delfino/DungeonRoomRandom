@@ -170,7 +170,8 @@ public class BoardManager : MonoBehaviour
         tile = 4;
         if (topDoor)
         {
-            int pos = Random.Range(0, columns);
+            //int pos = Random.Range(0, columns);
+            int pos = columns/2;
             for (int y = rows, x = pos, i = 0; i<1; i++, x++)
             {
                 boardMap[y, x] = tile;
@@ -179,7 +180,8 @@ public class BoardManager : MonoBehaviour
         }
         if (leftDoor)
         {
-            int pos = Random.Range(0, rows);
+            //int pos = Random.Range(0, rows);
+            int pos = rows/2;
             for (int y = pos, x = -1, i = 0; i<1; i++, y++)
             {
                 boardMap[y, x] = tile;
@@ -188,7 +190,8 @@ public class BoardManager : MonoBehaviour
         }
         if (bottomDoor)
         {
-            int pos = Random.Range(0, columns);
+            //int pos = Random.Range(0, columns);
+            int pos = columns/2;
             for (int y = -1, x = pos, i = 0; i<1; i++, x++)
             {
                 boardMap[y, x] = tile;
@@ -197,7 +200,8 @@ public class BoardManager : MonoBehaviour
         }
         if (rightDoor)
         {
-            int pos = Random.Range(0, rows);
+            //int pos = Random.Range(0, rows);
+            int pos = rows/2;
             for (int y = pos, x = columns, i = 0; i<1; i++, y++)
             {
                 boardMap[y, x] = tile;

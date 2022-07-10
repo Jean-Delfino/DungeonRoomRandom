@@ -6,7 +6,8 @@ namespace Game.LevelManager.DungeonLoader
     public enum TileTypes
     {
         Floor,
-        Block
+        Block,
+        OuterWall
     }
     
     [CreateAssetMenu(fileName = "RoomData", menuName = "RoomGenerator/RoomData")]

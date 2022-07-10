@@ -9,7 +9,10 @@ using UnityEngine.SocialPlatforms;
 using Random = UnityEngine.Random;
 
 public class BoardManager : MonoBehaviour
-{
+{   
+
+    delegate int NeighborComparison(int value, int left, int right);
+
     [Serializable]
     public class Count
     {
@@ -64,19 +67,30 @@ public class BoardManager : MonoBehaviour
 
     }
 
-    private bool leftDoor;
-    private bool rightDoor;
-    private bool topDoor;
-    private bool bottomDoor;
+    [Range(0,1)]
+    private int[] doors = new int[4];
+    private int doorsNumber;
+
     private int columns;
     private int rows;
-    private int doorsNumber;
     private Count wallCount;
     private MatrixMap boardMap;
     public GameObject door;
-    public GameObject[] floorTiles;
-    public GameObject[] wallTiles;
-    public GameObject[] outerWallTiles;
+
+    [Serializable]
+    public class TilePrefab{
+        [SerializeField] List<GameObject> pref;
+
+        public List<GameObject> GetAllGameObjects(){
+            return this.pref;
+        }
+
+        public int GetPrefCount(){
+            return pref.Count;
+        }
+    }
+
+    [SerializeField] List<TilePrefab> prefabsSpawn = default;
     
     private float initialDensity = 0.2f;
     private int rule;
@@ -110,28 +124,55 @@ public class BoardManager : MonoBehaviour
     {
         RoomData roomData = ScriptableObject.CreateInstance<RoomData>();
         roomData.Init(rows,columns);
+        TilePrefab prefHold; 
+        GameObject toInstantiate;
+
+        
 
         for (int x = -1; x < columns + 1; x++)
         {
             for (int y = -1; y < rows + 1; y++)
             {
-                GameObject toInstantiate;
-                switch (boardMap[y, x])
-                {
-                    case 0: toInstantiate = floorTiles[Random.Range(0, floorTiles.Length)];
+                switch (boardMap[y, x]){
+                    case 0: 
+                        prefHold = prefabsSpawn[(int) TileTypes.Floor];
+
+                        toInstantiate = prefHold.GetAllGameObjects()
+                            [Random.Range(0, prefHold.GetPrefCount() - 1)];
+
                         roomData[y, x] = new Tile(TileTypes.Floor);
                         break;
-                    case 1: toInstantiate = wallTiles[Random.Range(0, wallTiles.Length)];
+                    case 1: 
+                        prefHold = prefabsSpawn[(int) TileTypes.Block];
+
+                        toInstantiate = prefHold.GetAllGameObjects()
+                            [Random.Range(0, prefHold.GetPrefCount() - 1)];
+
                         roomData[y, x] = new Tile(TileTypes.Block);
                         break;
-                    case 2: toInstantiate = floorTiles[Random.Range(0, floorTiles.Length)];
+                    case 2: 
+                        prefHold = prefabsSpawn[(int) TileTypes.Floor];
+
+                        toInstantiate = prefHold.GetAllGameObjects()
+                            [Random.Range(0, prefHold.GetPrefCount() - 1)];
+                        
                         roomData[y, x] = new Tile(TileTypes.Floor);
                         break;
-                    case 3: toInstantiate = outerWallTiles[Random.Range(0, outerWallTiles.Length)];
+                    case 3: 
+                        prefHold = prefabsSpawn[(int) TileTypes.OuterWall];
+
+                        toInstantiate = prefHold.GetAllGameObjects()
+                            [Random.Range(0, prefHold.GetPrefCount() - 1)];
+
                         break;
-                    case 4: toInstantiate = door;
+                    case 4: 
+                        toInstantiate = door;
                         break;
-                    default: toInstantiate = wallTiles[Random.Range(0, wallTiles.Length)];
+                    default: 
+                        prefHold = prefabsSpawn[(int) TileTypes.Block];
+
+                        toInstantiate = prefHold.GetAllGameObjects()
+                            [Random.Range(0, prefHold.GetPrefCount() - 1)];
                         roomData[y, x] = new Tile(TileTypes.Block);
                         break;
                 }
@@ -146,15 +187,33 @@ public class BoardManager : MonoBehaviour
         SetupEntities();
     }
 
+    int[] multiplyIntVector(int[] origin, int[] multiplier){
+        int[] res = new int[origin.Length];
+        int i;
+
+        for(i = 0; i < origin.Length; i++){
+            res[i] = origin[i] * multiplier[i];
+        }
+
+        return res;
+    }
+
     void BoardSetup()
     {
         boardMap = new MatrixMap(columns, rows);
-        doorsNumber = 0;
         boardHolder = new GameObject("Board").transform;
+        doorsNumber = 0;
         int tile;
-        for (int x = -1; x < columns + 1; x++)
+        int i, x, y;
+
+        int[] YpositionDoors = multiplyIntVector(doors, 
+            new int[4] {rows, rows/2, -1, rows/2});
+        int[] XpositionDoors = multiplyIntVector(doors, 
+            new int[4] {columns/2, -1, columns/2, columns});
+
+        for (x = -1; x < columns + 1; x++)
         {
-            for (int y = -1; y < rows + 1; y++)
+            for (y = -1; y < rows + 1; y++)
             {
                 tile = 0;
                 
@@ -168,42 +227,11 @@ public class BoardManager : MonoBehaviour
         }
         
         tile = 4;
-        if (topDoor)
-        {
-            //int pos = Random.Range(0, columns);
-            int pos = columns/2;
-            for (int y = rows, x = pos, i = 0; i<1; i++, x++)
-            {
-                boardMap[y, x] = tile;
-                doorsNumber++;
-            }
-        }
-        if (leftDoor)
-        {
-            //int pos = Random.Range(0, rows);
-            int pos = rows/2;
-            for (int y = pos, x = -1, i = 0; i<1; i++, y++)
-            {
-                boardMap[y, x] = tile;
-                doorsNumber++;
-            }
-        }
-        if (bottomDoor)
-        {
-            //int pos = Random.Range(0, columns);
-            int pos = columns/2;
-            for (int y = -1, x = pos, i = 0; i<1; i++, x++)
-            {
-                boardMap[y, x] = tile;
-                doorsNumber++;
-            }
-        }
-        if (rightDoor)
-        {
-            //int pos = Random.Range(0, rows);
-            int pos = rows/2;
-            for (int y = pos, x = columns, i = 0; i<1; i++, y++)
-            {
+
+        for(i = 0; i < doors.Length; i++){
+            if(doors[i] != 0){
+                y = YpositionDoors[i];
+                x = XpositionDoors[i];
                 boardMap[y, x] = tile;
                 doorsNumber++;
             }
@@ -358,70 +386,53 @@ public class BoardManager : MonoBehaviour
         }
     }
 
+    int BoundDoubleCheck(int value, int leftbound, int rightbound){
+        if (value < leftbound || value > rightbound){
+            return 0;
+        }
+
+        return BoundIntersectionCheck(value, leftbound, rightbound);
+    }
+
+    int BoundIntersectionCheck(int value, int leftbound, int rightbound){
+        if(value >= leftbound && value <= rightbound){
+            return 1;
+        }
+        return 0;
+    }
+
     void ApplyRules(int y, int x, int value, int neighbors, ref MatrixMap nextGenMap, int rule)
     {
+        int result = 0;
+
         switch (rule)
         {
             case 1: switch (value)
             {
                 case 1:
-                    if (neighbors < 2)
-                    {
-                        nextGenMap[y, x] = 0;
-                    }
-
-                    if (neighbors >= 2 && neighbors <= 5)
-                    {
-                        nextGenMap[y, x] = 1;
-                    }
-
-                    if (neighbors > 5)
-                    {
-                        nextGenMap[y, x] = 0;
-                    }
-                            
+                    result = BoundDoubleCheck(neighbors, 2, 5);         
                     break;
                 case 0:
-                    if ((neighbors >= 3 && neighbors <= 5))
-                    {
-                        nextGenMap[y, x] = 1;
-                    }
+                    result = BoundIntersectionCheck(neighbors, 2, 5);
                     break;
-
             }
 
-                break;
+            break;
 
             case 3: switch (value)
-                {
-                    case 1:
-                        if (neighbors < 2)
-                        {
-                            nextGenMap[y, x] = 0;
-                        }
+            {
+                case 1:
+                    result = BoundDoubleCheck(neighbors, 2, 3);
+                    break;
+                case 0:
+                    result = BoundIntersectionCheck(neighbors, 3, 3);
+                    break;
+            }
 
-                        if (neighbors >= 2 && neighbors <= 3)
-                        {
-                            nextGenMap[y, x] = 1;
-                        }
-
-                        if (neighbors > 3)
-                        {
-                            nextGenMap[y, x] = 0;
-                        }
-                            
-                        break;
-                    case 0:
-                        if ((neighbors >= 3 && neighbors <= 3))
-                        {
-                            nextGenMap[y, x] = 1;
-                        }
-                        break;
-
-                }
-
-                break;
+            break;
         }
+
+        nextGenMap[y, x] = result;
     }
 
     void ApplyErosion()
@@ -529,10 +540,12 @@ public class BoardManager : MonoBehaviour
         Vector3 referencePosition = new Vector3();
         
         List<Vector3> possibleGround = new List<Vector3>();
-        possibleGround.Add(doorPosition+Vector3.up);
-        possibleGround.Add(doorPosition+Vector3.down);
-        possibleGround.Add(doorPosition+Vector3.right);
-        possibleGround.Add(doorPosition+Vector3.left);
+
+        possibleGround.Add(doorPosition + Vector3.up);
+        possibleGround.Add(doorPosition + Vector3.down);
+        possibleGround.Add(doorPosition + Vector3.right);
+        possibleGround.Add(doorPosition + Vector3.left);
+
         foreach (var position in possibleGround)
         {
             int x = (int) position.x;
@@ -606,10 +619,10 @@ public class BoardManager : MonoBehaviour
         }
 
         List<Vector3> positions = new List<Vector3>();
-        positions.Add(currentPosition+Vector3.down);
-        positions.Add(currentPosition+Vector3.left);
-        positions.Add(currentPosition+Vector3.up);
-        positions.Add(currentPosition+Vector3.right);
+        positions.Add(currentPosition + Vector3.down);
+        positions.Add(currentPosition + Vector3.left);
+        positions.Add(currentPosition + Vector3.up);
+        positions.Add(currentPosition + Vector3.right);
 
         positions.Sort((x, y) =>
         {
@@ -621,7 +634,6 @@ public class BoardManager : MonoBehaviour
             _DigTo(ref map, position, finalPosition, ref flag);
         }
         
-
     }
 
     bool IsPossible(Vector3 initialPosition, ref List<Vector3> foundDoors)
@@ -687,31 +699,33 @@ public class BoardManager : MonoBehaviour
             enemyController.LoadEnemyData(enemySO);
         }
 
-
     }
 
     public void SetupScene(int columns, int rows, bool leftDoor, bool rightDoor, bool topDoor, bool bottomDoor)
     {
         this.columns = columns;
         this.rows = rows;
-        this.leftDoor = leftDoor;
-        this.rightDoor = rightDoor;
-        this.topDoor = topDoor;
-        this.bottomDoor = bottomDoor;
+        this.doors[0] = Convert.ToInt32(topDoor);
+        this.doors[1] = Convert.ToInt32(leftDoor);
+        this.doors[2] = Convert.ToInt32(bottomDoor);
+        this.doors[3] = Convert.ToInt32(rightDoor);
 
         boardHolder = new GameObject("Board").transform;
 
         switch (boardDensity)
         {
-            case 1: boardFinalErosion = 0f;
-                    rule = 3;
-                    break;
-            case 2: boardFinalErosion = 1f;
-                    rule = 1;
-                    break;
-            case 3: boardFinalErosion = 0.5f;
-                    rule = 1;
-                    break;
+            case 1: 
+                boardFinalErosion = 0f;
+                rule = 3;
+                break;
+            case 2: 
+                boardFinalErosion = 1f;
+                rule = 1;
+                break;
+            case 3: 
+                boardFinalErosion = 0.5f;
+                rule = 1;
+                break;
         }
         
         BoardSetup();
